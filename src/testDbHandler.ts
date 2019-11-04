@@ -3,8 +3,10 @@ import {MongoMemoryServer} from "mongodb-memory-server";
 
 const mongod = new MongoMemoryServer();
 
+const dbHandler: {[key: string]: () => void} = {};
+
 /** *  * Connect to the in-memory database. *   */
-module.exports.connect = async () => {
+dbHandler.connect = async () => {
   const uri = await mongod.getConnectionString();
 
   const mongooseOpts = {
@@ -21,15 +23,17 @@ module.exports.connect = async () => {
 };
 
 /** *  * Drop database, close the connection and stop mongod. *   */
-module.exports.closeDatabase = async () => {
+dbHandler.closeDatabase = async () => {
   await connection.dropDatabase();
   await connection.close();
   await mongod.stop();
 };
 
 /** *  * Remove all the data for all db collections.*   */
-module.exports.clearDatabase = async () => {
+dbHandler.clearDatabase = async () => {
   const collections = connection.collections;
   const keys = Object.keys(collections);
   keys.forEach(k => collections[k].deleteMany({}));
 };
+
+export default dbHandler;
