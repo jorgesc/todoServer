@@ -1,6 +1,7 @@
-import {Schema, model} from "mongoose";
+import {Schema, model, Document} from "mongoose";
 
-import {ITaskModel} from "../types/types";
+import {ITask} from "../types/types";
+interface ITaskModel extends ITask, Document {}
 
 const TaskSchema = new Schema({
   title: {type: String, required: true},
