@@ -1,10 +1,3 @@
-import express from "express";
-import routes from "./routes";
-
-const app = express();
-
-app.use(express.json());
-app.use(routes);
-
+import App from "./App";
 const PORT = 3030;
-app.listen(PORT, () => console.log("listening on port 3030"));
+App.listen(PORT, () => console.log("listening on port 3030"));
