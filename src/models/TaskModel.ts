@@ -1,16 +1,6 @@
-import {Schema, model, Document} from "mongoose";
+import {Schema, model} from "mongoose";
 
-interface ITaskModel extends Document {
-  title: string;
-  description: string;
-  createdBy: number;
-  createdOn: Date;
-  completed: boolean;
-  completedOn?: Date;
-  dueDate?: Date;
-  estimatedCompletionTime?: number;
-  children: string[];
-}
+import {ITaskModel} from "../types/types";
 
 const TaskSchema = new Schema({
   title: {type: String, required: true},
