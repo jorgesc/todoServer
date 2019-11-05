@@ -1,4 +1,5 @@
-import request, {Response} from "supertest";
+import request from "supertest-session";
+import {Response} from "express";
 import App from "../../App";
 import dbHandler from "../../testDbHandler";
 import UserModel from "../../models/UserModel";
@@ -47,5 +48,46 @@ describe("UserViews tests", () => {
       status: "error",
       result: "Document already exists",
     });
+  });
+
+  it("Can log in", async () => {
+    // Create the user
+    const userData = {email: "asdf", password: "qwer"};
+
+    await request(App)
+      .post("/users/")
+      .send(userData);
+
+    // Test it
+
+    const testSession = request(App);
+
+    const response = (await testSession.get(
+      "/users/amILoggedIn",
+    )) as IMyResponse;
+
+    expect(response.statusCode).toEqual(200);
+    expect(response.body).toEqual({status: "ok", result: false});
+
+    const response2 = (await testSession
+      .post("/users/login")
+      .send({email: "asdf", password: "asdf"})) as IMyResponse;
+
+    expect(response2.statusCode).toEqual(403);
+    expect(response2.body).toEqual({status: "error", result: "Invalid login"});
+
+    const response3 = (await testSession
+      .post("/users/login")
+      .send({email: "asdf", password: "qwer"})) as IMyResponse;
+
+    expect(response3.statusCode).toEqual(200);
+    expect(response3.body).toEqual({status: "ok", result: ""});
+
+    const response4 = (await testSession.get(
+      "/users/amILoggedIn",
+    )) as IMyResponse;
+
+    expect(response4.statusCode).toEqual(200);
+    expect(response4.body).toEqual({status: "ok", result: true});
   });
 });

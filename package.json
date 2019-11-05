@@ -11,7 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "@babel/preset-typescript": "^7.6.0",
+    "@types/express-session": "^1.15.15",
     "express": "^4.17.1",
+    "express-session": "^1.17.0",
     "mongoose": "^5.7.7"
   },
   "devDependencies": {
@@ -28,11 +30,14 @@
     "mongodb-memory-server": "^6.0.1",
     "nodemon": "^1.19.4",
     "supertest": "^4.0.2",
+    "supertest-session": "^4.0.0",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.4"
   },
   "jest": {
     "testEnvironment": "node",
-    "coveragePathIgnorePatterns": ["/node/modules"]
+    "coveragePathIgnorePatterns": [
+      "/node/modules"
+    ]
   }
 }
