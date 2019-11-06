@@ -20,9 +20,8 @@ interface IMyTaskModel extends ITaskModel {
   _doc?: ITask;
 }
 
-beforeAll(async () => await dbHandler.connect());
-afterEach(async () => await dbHandler.clearDatabase());
-afterAll(async () => await dbHandler.closeDatabase());
+beforeEach(async () => await dbHandler.connect());
+afterEach(async () => await dbHandler.closeDatabase());
 
 describe("Task Routes: Create task", () => {
   let testSession: any;
@@ -36,7 +35,7 @@ describe("Task Routes: Create task", () => {
     const user = await request(App)
       .post("/users/")
       .send(userData);
-    await testSession.post("/users/login").send(userData);
+    const loginResponse = await testSession.post("/users/login").send(userData);
 
     userId = user.body.result._id;
   });

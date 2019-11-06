@@ -11,9 +11,8 @@ interface IMyResponse extends Response {
   body: IResponse;
 }
 
-beforeAll(async () => await dbHandler.connect());
-afterEach(async () => await dbHandler.clearDatabase());
-afterAll(async () => await dbHandler.closeDatabase());
+beforeEach(async () => await dbHandler.connect());
+afterEach(async () => await dbHandler.closeDatabase());
 
 describe("UserViews tests", () => {
   it("Can create a new user", async () => {
