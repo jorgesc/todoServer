@@ -11,6 +11,7 @@ dbHandler.connect = async () => {
 
   const mongooseOpts = {
     useNewUrlParser: true,
+    useUnifiedTopology: true,
     autoReconnect: true,
     reconnectTries: Number.MAX_VALUE,
     reconnectInterval: 1000,
