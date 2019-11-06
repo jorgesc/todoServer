@@ -1,7 +1,7 @@
 import request from "supertest-session";
 import {Response} from "express";
 import App from "../../App";
-import dbHandler from "../../testDbHandler";
+import dbHandler from "../../testSetup/testDbHandler";
 import UserModel from "../../models/UserModel";
 
 import {IResponse} from "../../types/types";
