@@ -30,7 +30,7 @@ export default {
   },
 
   amILoggedIn: (req: Request, res: Response): Response => {
-    const loggedIn = !!(req.session && req.session.user);
+    const loggedIn = !!(req.session && req.session.userId);
     return res.status(200).json({...SUCCESS, result: loggedIn});
   },
 
@@ -41,12 +41,12 @@ export default {
       return res.status(403).json(INVALID_LOGIN_ERROR);
     }
 
-    req.session.user = user.email;
+    req.session.userId = user._id;
     return res.status(200).json(SUCCESS);
   },
 
   logOut: (req: Request, res: Response): Response => {
-    if (req.session) delete req.session.user;
+    if (req.session) delete req.session.userId;
     return res.status(200).json(SUCCESS);
   },
 };
