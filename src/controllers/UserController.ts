@@ -11,6 +11,11 @@ const INVALID_LOGIN_ERROR = {
   result: "Invalid login",
 };
 
+const SUCCESS = {
+  status: "ok",
+  result: "",
+};
+
 export default {
   createNewUser: async (req: Request, res: Response): Promise<Response> => {
     const userData = req.body;
@@ -21,12 +26,12 @@ export default {
 
     const newUser = new UserModel(userData);
     const output = await newUser.save();
-    return res.status(201).json({status: "ok", result: output});
+    return res.status(201).json({...SUCCESS, result: output});
   },
 
   amILoggedIn: (req: Request, res: Response): Response => {
     const loggedIn = !!(req.session && req.session.user);
-    return res.status(200).json({status: "ok", result: loggedIn});
+    return res.status(200).json({...SUCCESS, result: loggedIn});
   },
 
   logIn: async (req: Request, res: Response): Promise<Response> => {
@@ -37,11 +42,11 @@ export default {
     }
 
     req.session.user = user.email;
-    return res.status(200).json({status: "ok", result: ""});
+    return res.status(200).json(SUCCESS);
   },
 
   logOut: (req: Request, res: Response): Response => {
     if (req.session) delete req.session.user;
-    return res.status(200).json({status: "ok", result: ""});
+    return res.status(200).json(SUCCESS);
   },
 };
