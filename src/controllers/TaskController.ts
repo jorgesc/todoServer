@@ -13,6 +13,17 @@ const markAncestorsUncompleted = async (id: string): Promise<void> => {
   if (next && next.parentTask) return markAncestorsUncompleted(next.parentTask);
 };
 
+const checkAndCompleteAncestors = async (id: string): Promise<void> => {
+  const children = await TaskModel.find({parentTask: id});
+  if (!children.every(c => c.completed)) return;
+  const curr = await TaskModel.findOne({_id: id});
+  if (!curr) throw new Error(`Task with id: ${id} not found on database`);
+  curr.completed = true;
+  await curr.save();
+  const {parentTask} = curr;
+  if (parentTask) return await checkAndCompleteAncestors(parentTask);
+};
+
 export default {
   createNewTask: async (req: Request, res: Response): Promise<Response> => {
     if (!req.session || !req.session.userId) return NOT_LOGGED_IN(res);
@@ -51,5 +62,27 @@ export default {
       status: "ok",
       result: {...task.toObject(), children: childrenTasks},
     });
+  },
+
+  deleteTask: async (req: Request, res: Response): Promise<Response> => {
+    const failure = {
+      status: "error",
+      result: "Task doesn't exists or not enough permissions",
+    };
+    const {taskId} = req.params;
+    const task = await TaskModel.findOne({_id: taskId});
+
+    if (
+      task &&
+      req.session &&
+      mongoose.Types.ObjectId(req.session.userId).equals(task.createdBy)
+    ) {
+      const {parentTask} = task;
+
+      await task.remove();
+      if (parentTask) await checkAndCompleteAncestors(parentTask);
+      return res.status(204).send();
+    }
+    return res.status(401).json(failure);
   },
 };

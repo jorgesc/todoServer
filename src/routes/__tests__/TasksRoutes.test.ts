@@ -287,3 +287,143 @@ describe("Task Routes: Read task", () => {
     );
   });
 });
+
+describe("Task Routes: Delete task", () => {
+  it("Delete a task with no parent", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel(userData);
+    await user.save();
+
+    const loggedSession = request(App);
+    await loggedSession.post("/users/login").send(userData);
+
+    const amILoggedIn = await loggedSession.get("/users/amILoggedIn");
+    expect(amILoggedIn.body.result).toBe(true);
+
+    const parentTask = new TaskModel({
+      title: "Grand Parent task",
+      description: "bla bla bla",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await parentTask.save();
+
+    const response = await loggedSession.delete(`/tasks/${parentTask._id}`);
+    expect(response.statusCode).toEqual(204);
+
+    const dbItems = await TaskModel.find({}).exec();
+    expect(dbItems).toHaveLength(0);
+  });
+
+  it("Only creator can delete task", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel(userData);
+    await user.save();
+
+    const userData2 = {email: "asdfqwer", password: "qwerasdf"};
+    const user2 = new UserModel(userData2);
+    await user2.save();
+
+    const loggedSession = request(App);
+    await loggedSession.post("/users/login").send(userData2);
+
+    const amILoggedIn = await loggedSession.get("/users/amILoggedIn");
+    expect(amILoggedIn.body.result).toBe(true);
+
+    const parentTask = new TaskModel({
+      title: "Grand Parent task",
+      description: "bla bla bla",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await parentTask.save();
+
+    const response = await loggedSession.delete(`/tasks/${parentTask._id}`);
+    expect(response.statusCode).toEqual(401);
+
+    const dbItems = await TaskModel.find({}).exec();
+    expect(dbItems).toHaveLength(1);
+  });
+
+  it("If task doesnt exists return 401", async () => {
+    const id = mongoose.Types.ObjectId();
+    const response = await request(App).delete(`/tasks/${id}`);
+    expect(response.statusCode).toEqual(401);
+  });
+
+  it("Deleting task trigger ancestor check for completion", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel(userData);
+    await user.save();
+
+    const loggedSession = request(App);
+    await loggedSession.post("/users/login").send(userData);
+
+    const grandParent = new TaskModel({
+      title: "grand",
+      description: "grand desct",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    grandParent.save();
+
+    const parent1 = new TaskModel({
+      parentTask: grandParent._id,
+      title: "par1",
+      description: "par",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    parent1.save();
+
+    const parent2 = new TaskModel({
+      parentTask: grandParent._id,
+      title: "par2",
+      description: "par",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    parent2.save();
+
+    const child1 = new TaskModel({
+      parentTask: parent1._id,
+      title: "child1",
+      description: "par",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    child1.save();
+
+    const child2 = new TaskModel({
+      parentTask: parent1._id,
+      title: "child2",
+      description: "par",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    child2.save();
+
+    const response = await loggedSession.delete(`/tasks/${child1._id}`);
+
+    const items = await TaskModel.find({}).exec();
+    items.forEach(item => {
+      expect(item.completed).toBe(true);
+    });
+
+    expect(await TaskModel.find({_id: child1._id}).exec()).toHaveLength(0);
+    const updatedParent1 = await TaskModel.findOne({_id: parent1._id});
+    if (!updatedParent1) throw new Error("This is not going to happen");
+    expect(updatedParent1.completed).toBe(true);
+
+    const updatedGrand = await TaskModel.findOne({_id: grandParent._id});
+    if (!updatedGrand) throw new Error("This is not going to happen");
+    expect(updatedGrand.completed).toBe(true);
+  });
+});
