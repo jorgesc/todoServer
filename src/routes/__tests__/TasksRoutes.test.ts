@@ -189,3 +189,116 @@ describe("Task Routes: Create task", () => {
     expect(parentTaskDb.completed).toBe(false);
   });
 });
+
+describe("Task Routes: Read task", () => {
+  it("Returns error when user is not logged in", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel({
+      email: "asdf",
+      password: "qwer",
+    });
+    user.save();
+
+    const task = new TaskModel({
+      title: "Grand Parent task",
+      description: "Description",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await task.save();
+
+    const response = await request(App).get(`/tasks/${task._id.toString()}`);
+
+    expect(response.statusCode).toEqual(401);
+    expect(response.body.status).toEqual("error");
+    expect(response.body.result).toEqual("User not logged in");
+  });
+
+  it("Returns not found when the taskId doesnt exists", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel({
+      email: "asdf",
+      password: "qwer",
+    });
+    user.save();
+
+    const testSession = request(App);
+    await testSession.post("/users/login").send(userData);
+
+    const response = await testSession.get(
+      `/tasks/${mongoose.Types.ObjectId()}`,
+    );
+    expect(response.statusCode).toEqual(404);
+    expect(response.body.status).toEqual("error");
+    expect(response.body.result).toEqual("Not found");
+  });
+
+  it("Returns the task and its children", async () => {
+    const userData = {email: "asdf", password: "qwer"};
+    const user = new UserModel({
+      email: "asdf",
+      password: "qwer",
+    });
+    user.save();
+
+    const testSession = request(App);
+    await testSession.post("/users/login").send(userData);
+
+    const parentTask = new TaskModel({
+      title: "Grand Parent task",
+      description: "bla bla bla",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await parentTask.save();
+
+    const childTask1 = new TaskModel({
+      parentTask: parentTask._id,
+      title: "Child 1",
+      description: "Description 2343",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    childTask1.save();
+
+    const childTask2 = new TaskModel({
+      parentTask: parentTask._id,
+      title: "Child 2",
+      description: "Description adsnfkenafe",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    childTask2.save();
+
+    const response = await testSession.get(
+      `/tasks/${parentTask._id.toString()}`,
+    );
+
+    expect(response.statusCode).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(response.body.result.title).toEqual(parentTask.title);
+    expect(response.body.result.description).toEqual(parentTask.description);
+    expect(response.body.result._id).toEqual(parentTask._id.toString());
+
+    expect(response.body.result.children).toHaveLength(2);
+    expect(response.body.result.children[0].title).toEqual(childTask1.title);
+    expect(response.body.result.children[0].description).toEqual(
+      childTask1.description,
+    );
+    expect(response.body.result.children[0]._id).toEqual(
+      childTask1._id.toString(),
+    );
+
+    expect(response.body.result.children[1].title).toEqual(childTask2.title);
+    expect(response.body.result.children[1].description).toEqual(
+      childTask2.description,
+    );
+    expect(response.body.result.children[1]._id).toEqual(
+      childTask2._id.toString(),
+    );
+  });
+});
