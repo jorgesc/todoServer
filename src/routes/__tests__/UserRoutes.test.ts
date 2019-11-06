@@ -90,4 +90,32 @@ describe("UserViews tests", () => {
     expect(response4.statusCode).toEqual(200);
     expect(response4.body).toEqual({status: "ok", result: true});
   });
+
+  it("Can log out", async () => {
+    // Create the user
+    const userData = {email: "asdf", password: "qwer"};
+    // prettier-ignore
+    await request(App).post("/users/").send(userData);
+
+    // Test it
+    const testSession = request(App);
+    await testSession.post("/users/login").send(userData);
+    const response = (await testSession.get(
+      "/users/amILoggedIn",
+    )) as IMyResponse;
+
+    expect(response.statusCode).toEqual(200);
+    expect(response.body).toEqual({status: "ok", result: true});
+
+    const response2 = (await testSession.get("/users/logout")) as IMyResponse;
+    expect(response2.statusCode).toEqual(200);
+    expect(response2.body).toEqual({status: "ok", result: ""});
+
+    const response3 = (await testSession.get(
+      "/users/amILoggedIn",
+    )) as IMyResponse;
+
+    expect(response3.statusCode).toEqual(200);
+    expect(response3.body).toEqual({status: "ok", result: false});
+  });
 });
