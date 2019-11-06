@@ -5,7 +5,7 @@ import {ITask} from "../../types/types";
 import {Response} from "express";
 import dbHandler from "../../testSetup/testDbHandler";
 import TaskModel, {ITaskModel} from "../../models/TaskModel";
-import UserModel from "../../models/UserModel";
+import UserModel, {IUserModel} from "../../models/UserModel";
 
 import {advanceTo, advanceBy} from "jest-date-mock";
 
@@ -191,42 +191,69 @@ describe("Task Routes: Create task", () => {
 });
 
 describe("Task Routes: Read task", () => {
-  it("Returns error when user is not logged in", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel({
-      email: "asdf",
-      password: "qwer",
-    });
-    user.save();
+  const userData = {email: "asdf", password: "qwer"};
+  let loggedSession: any;
+  let session: any;
+  let user: IUserModel;
 
-    const task = new TaskModel({
+  let parentTaskId: mongoose.Types.ObjectId;
+  let childTask1Id: mongoose.Types.ObjectId;
+  let childTask2Id: mongoose.Types.ObjectId;
+
+  let parentTask: any;
+  let childTask1: any;
+  let childTask2: any;
+
+  beforeEach(async () => {
+    user = new UserModel(userData);
+    await user.save();
+
+    session = request(App);
+    loggedSession = request(App);
+    await loggedSession.post("/users/login").send(userData);
+
+    parentTask = new TaskModel({
       title: "Grand Parent task",
-      description: "Description",
+      description: "bla bla bla",
       createdBy: user._id,
       createdOn: new Date(),
       completed: false,
     });
-    await task.save();
+    await parentTask.save();
+    parentTaskId = parentTask._id;
 
-    const response = await request(App).get(`/tasks/${task._id.toString()}`);
+    childTask1 = new TaskModel({
+      parentTask: parentTask._id,
+      title: "Child 1",
+      description: "Description 2343",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await childTask1.save();
+    childTask1Id = childTask1._id;
 
+    childTask2 = new TaskModel({
+      parentTask: parentTask._id,
+      title: "Child 2",
+      description: "Description adsnfkenafe",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false,
+    });
+    await childTask2.save();
+    childTask2Id = childTask2._id;
+  });
+
+  it("Returns error when user is not logged in", async () => {
+    const response = await session.get(`/tasks/${parentTaskId.toString()}`);
     expect(response.statusCode).toEqual(401);
     expect(response.body.status).toEqual("error");
     expect(response.body.result).toEqual("User not logged in");
   });
 
   it("Returns not found when the taskId doesnt exists", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel({
-      email: "asdf",
-      password: "qwer",
-    });
-    user.save();
-
-    const testSession = request(App);
-    await testSession.post("/users/login").send(userData);
-
-    const response = await testSession.get(
+    const response = await loggedSession.get(
       `/tasks/${mongoose.Types.ObjectId()}`,
     );
     expect(response.statusCode).toEqual(404);
@@ -235,48 +262,7 @@ describe("Task Routes: Read task", () => {
   });
 
   it("Returns the task and its children", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel({
-      email: "asdf",
-      password: "qwer",
-    });
-    user.save();
-
-    const testSession = request(App);
-    await testSession.post("/users/login").send(userData);
-
-    const parentTask = new TaskModel({
-      title: "Grand Parent task",
-      description: "bla bla bla",
-      createdBy: user._id,
-      createdOn: new Date(),
-      completed: false,
-    });
-    await parentTask.save();
-
-    const childTask1 = new TaskModel({
-      parentTask: parentTask._id,
-      title: "Child 1",
-      description: "Description 2343",
-      createdBy: user._id,
-      createdOn: new Date(),
-      completed: false,
-    });
-    childTask1.save();
-
-    const childTask2 = new TaskModel({
-      parentTask: parentTask._id,
-      title: "Child 2",
-      description: "Description adsnfkenafe",
-      createdBy: user._id,
-      createdOn: new Date(),
-      completed: false,
-    });
-    childTask2.save();
-
-    const response = await testSession.get(
-      `/tasks/${parentTask._id.toString()}`,
-    );
+    const response = await loggedSession.get(`/tasks/${parentTaskId}`);
 
     expect(response.statusCode).toEqual(200);
     expect(response.body.status).toEqual("ok");
