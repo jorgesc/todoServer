@@ -5,6 +5,7 @@ import {ITask} from "../../types/types";
 import {Response} from "express";
 import dbHandler from "../../testSetup/testDbHandler";
 import TaskModel, {ITaskModel} from "../../models/TaskModel";
+import UserModel from "../../models/UserModel";
 
 import {advanceTo, advanceBy} from "jest-date-mock";
 
@@ -112,5 +113,79 @@ describe("Task Routes: Create task", () => {
     expect(dbTask.createdOn).not.toEqual(taskData.createdOn);
     expect(dbTask._id).not.toEqual(taskData._id);
     expect(dbTask.completed).not.toEqual(taskData.completed);
+  });
+
+  it("Creates a task with a parent", async () => {
+    const parentTaskData = {
+      title: "Test task",
+      description: "Whatever",
+    };
+
+    const parentTaskResponse = await testSession
+      .post("/tasks")
+      .send(parentTaskData);
+    const parentTaskId = parentTaskResponse.body.result._id;
+
+    const childTaskData = {
+      title: "Child task",
+      description: "hehehehe",
+      parentTask: parentTaskId,
+    };
+
+    const childTaskResponse = await testSession
+      .post("/tasks")
+      .send(childTaskData);
+    const tasksOnDb = await TaskModel.find({}).exec();
+    expect(tasksOnDb).toHaveLength(2);
+
+    const childTaskDb = (await TaskModel.findOne({
+      title: "Child task",
+    }).exec()) as ITaskModel;
+    expect(childTaskDb.parentTask).toEqual(
+      mongoose.Types.ObjectId(parentTaskId),
+    );
+  });
+
+  it("Adding a new child marks all its ancestors as uncompleted", async () => {
+    const grandParentTask = new TaskModel({
+      title: "Grand Parent task",
+      description: "Description",
+      completed: true,
+      createdBy: userId,
+      createdOn: new Date(),
+    });
+    await grandParentTask.save();
+
+    const parentTask = new TaskModel({
+      title: "Parent task",
+      description: "Description",
+      completed: true,
+      createdBy: userId,
+      createdOn: new Date(),
+      parentTask: grandParentTask._id,
+    });
+
+    await parentTask.save();
+
+    const childTaskData = {
+      title: "Child task",
+      description: "child task desfc",
+      parentTask: parentTask._id,
+    };
+
+    await testSession.post("/tasks").send(childTaskData);
+
+    const dbTasks = await TaskModel.find({});
+    expect(dbTasks).toHaveLength(3);
+
+    const grandParentTaskDb = (await TaskModel.findOne({
+      _id: grandParentTask._id,
+    })) as ITaskModel;
+    expect(grandParentTaskDb.completed).toBe(false);
+
+    const parentTaskDb = (await TaskModel.findOne({
+      _id: parentTask._id,
+    })) as ITaskModel;
+    expect(parentTaskDb.completed).toBe(false);
   });
 });

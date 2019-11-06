@@ -13,6 +13,7 @@ const TaskSchema = new Schema({
   dueDate: {type: Date, required: false},
   estimatedCompletionTime: {type: Number, required: false},
   children: [{type: String, required: false}],
+  parentTask: {type: Schema.Types.ObjectId, required: false},
 });
 
 export default model<ITaskModel>("task", TaskSchema);
