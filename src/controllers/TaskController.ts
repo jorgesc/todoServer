@@ -7,21 +7,21 @@ import { markAncestorsUncompleted, checkAndCompleteAncestors } from "../utils/ta
 
 type IMiddlewareFunc = (req: Request, res: Response, extra?: any) => any;
 
-const isLoggedIn: IMiddlewareFunc = (req, res) => {
+const isLoggedIn: IMiddlewareFunc = async (req, res) => {
   if (!req.session || !req.session.userId) return NOT_LOGGED_IN(res);
 };
 
 const taskExists: IMiddlewareFunc = async (req, res) => {
   const { taskId } = req.params;
   const task = await TaskModel.findOne({ _id: taskId });
-  return task ? task : NOT_FOUND(res);
+  return task || NOT_FOUND(res);
 };
 
 const withMiddleware = (fun: any, middlewares: IMiddlewareFunc[]) => {
-  return (req: Request, res: Response) => {
+  return async (req: Request, res: Response) => {
     for (const m of middlewares) {
-      console.log("Testing middleware", m);
-      const output = m(req, res);
+      console.log("Testing middleware", m, "of", middlewares);
+      const output = await m(req, res);
       console.log("output", typeof output);
       if (output) {
         if (output instanceof Response) return output;
@@ -66,7 +66,7 @@ const showTask = async (req: Request, res: Response): Promise<Response> => {
 export default {
   createNewTask: withMiddleware(createNewTask, [isLoggedIn]),
 
-  showTask: withMiddleware(showTask, [isLoggedIn]),
+  showTask: withMiddleware(showTask, [isLoggedIn, taskExists]),
 
   deleteTask: async (req: Request, res: Response): Promise<Response> => {
     const { taskId } = req.params;
