@@ -289,14 +289,20 @@ describe("Task Routes: Read task", () => {
 });
 
 describe("Task Routes: Delete task", () => {
-  it("Delete a task with no parent", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel(userData);
+  const userData = {email: "asdf", password: "qwer"};
+  let user: IUserModel;
+  let loggedSession: any;
+  let session: any;
+
+  beforeEach(async () => {
+    user = new UserModel(userData);
     await user.save();
-
-    const loggedSession = request(App);
+    session = request(App);
+    loggedSession = request(App);
     await loggedSession.post("/users/login").send(userData);
+  });
 
+  it("Delete a task with no parent", async () => {
     const amILoggedIn = await loggedSession.get("/users/amILoggedIn");
     expect(amILoggedIn.body.result).toBe(true);
 
@@ -317,16 +323,9 @@ describe("Task Routes: Delete task", () => {
   });
 
   it("Only creator can delete task", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel(userData);
-    await user.save();
-
     const userData2 = {email: "asdfqwer", password: "qwerasdf"};
     const user2 = new UserModel(userData2);
     await user2.save();
-
-    const loggedSession = request(App);
-    await loggedSession.post("/users/login").send(userData2);
 
     const amILoggedIn = await loggedSession.get("/users/amILoggedIn");
     expect(amILoggedIn.body.result).toBe(true);
@@ -334,7 +333,7 @@ describe("Task Routes: Delete task", () => {
     const parentTask = new TaskModel({
       title: "Grand Parent task",
       description: "bla bla bla",
-      createdBy: user._id,
+      createdBy: user2._id,
       createdOn: new Date(),
       completed: false,
     });
@@ -354,13 +353,6 @@ describe("Task Routes: Delete task", () => {
   });
 
   it("Deleting task trigger ancestor check for completion", async () => {
-    const userData = {email: "asdf", password: "qwer"};
-    const user = new UserModel(userData);
-    await user.save();
-
-    const loggedSession = request(App);
-    await loggedSession.post("/users/login").send(userData);
-
     const grandParent = new TaskModel({
       title: "grand",
       description: "grand desct",
@@ -425,5 +417,113 @@ describe("Task Routes: Delete task", () => {
     const updatedGrand = await TaskModel.findOne({_id: grandParent._id});
     if (!updatedGrand) throw new Error("This is not going to happen");
     expect(updatedGrand.completed).toBe(true);
+  });
+});
+
+describe("Task Routes: Edit task", () => {
+  const userData = {email: "asdf", password: "qwer"};
+  let user: IUserModel;
+  let loggedSession: any;
+  let session: any;
+
+  beforeEach(async () => {
+    user = new UserModel(userData);
+    await user.save();
+    session = request(App);
+    loggedSession = request(App);
+    await loggedSession.post("/users/login").send(userData);
+  });
+
+  it("Response is 401 when taskId doesn't exists", async () => {
+    const response = await loggedSession
+      .put(`/tasks/${mongoose.Types.ObjectId()}`)
+      .send({completed: true});
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toEqual({
+      status: "error",
+      result: "Task doesn't exists or not enough permissions",
+    });
+  });
+
+  it("Response is 401 when user is not logged in", async () => {
+    const task = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    await task.save();
+
+    const response = await session
+      .put(`/tasks/${task._id}`)
+      .send({completed: true});
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toEqual({
+      status: "error",
+      result: "Task doesn't exists or not enough permissions",
+    });
+  });
+
+  it("Response is 401 when user is not task creator", async () => {
+    const user2 = new UserModel({email: "wwwww", password: "qqqqqq"});
+    await user2.save();
+    const task = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: false,
+      createdBy: user2._id,
+      createdOn: new Date(),
+    });
+    await task.save();
+
+    const response = await loggedSession
+      .put(`/tasks/${task._id}`)
+      .send({completed: true});
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toEqual({
+      status: "error",
+      result: "Task doesn't exists or not enough permissions",
+    });
+  });
+
+  it("Updates one field of the task", async () => {
+    const task = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    await task.save();
+    const response = await loggedSession
+      .put(`/tasks/${task._id}`)
+      .send({completed: true});
+    expect(response.statusCode).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(response.body.result.title).toEqual(task.title);
+    expect(response.body.result.description).toEqual(task.description);
+    expect(response.body.result.createdBy).toEqual(task.createdBy.toString());
+    expect(response.body.result.completed).toEqual(true);
+  });
+
+  it("Updates multiple fields on a task", async () => {
+    const task = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date(),
+    });
+    await task.save();
+    const response = await loggedSession
+      .put(`/tasks/${task._id}`)
+      .send({completed: true, title: "World", description: "jejejeje"});
+    expect(response.statusCode).toEqual(200);
+    expect(response.body.status).toEqual("ok");
+    expect(response.body.result.title).toEqual("World");
+    expect(response.body.result.description).toEqual("jejejeje");
+    expect(response.body.result.createdBy).toEqual(task.createdBy.toString());
+    expect(response.body.result.completed).toEqual(true);
   });
 });

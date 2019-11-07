@@ -84,4 +84,15 @@ export default {
     if (parentTask) await checkAndCompleteAncestors(parentTask);
     return res.status(204).send();
   },
+
+  editTask: async (req: Request, res: Response): Promise<Response> => {
+    const {taskId} = req.params;
+    const task = await TaskModel.findOne({_id: taskId});
+    if (!task || !req.session) return DELETE_FAIL(res);
+    if (!task.createdBy.equals(req.session.userId)) return DELETE_FAIL(res);
+    const output = await TaskModel.findOneAndUpdate({_id: taskId}, req.body, {
+      new: true,
+    }).exec();
+    return res.status(200).json({status: "ok", result: output});
+  },
 };
