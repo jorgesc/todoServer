@@ -27,7 +27,6 @@
     "babel-core": "^6.26.3",
     "babel-jest": "^24.9.0",
     "jest": "^24.9.0",
-    "jest-date-mock": "^1.0.7",
     "mongodb-memory-server": "^6.0.1",
     "nodemon": "^1.19.4",
     "supertest": "^4.0.2",
@@ -37,9 +36,6 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFiles": [
-      "jest-date-mock"
-    ],
     "coveragePathIgnorePatterns": [
       "/node/modules"
     ]
