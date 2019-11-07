@@ -1,12 +1,18 @@
 import {Request, Response} from "express";
 import mongoose from "mongoose";
-import TaskModel from "../models/TaskModel";
+import TaskModel, {ITaskModel} from "../models/TaskModel";
 
 const NOT_LOGGED_IN = (res: Response) =>
   res.status(401).json({status: "error", result: "User not logged in"});
 
 const NOT_FOUND = (res: Response) =>
   res.status(404).json({status: "error", result: "Not found"});
+
+const DELETE_FAIL = (r: Response): Response =>
+  r.status(401).json({
+    status: "error",
+    result: "Task doesn't exists or not enough permissions",
+  });
 
 const markAncestorsUncompleted = async (id: string): Promise<void> => {
   const next = await TaskModel.findOneAndUpdate({_id: id}, {completed: false});
@@ -65,24 +71,17 @@ export default {
   },
 
   deleteTask: async (req: Request, res: Response): Promise<Response> => {
-    const failure = {
-      status: "error",
-      result: "Task doesn't exists or not enough permissions",
-    };
     const {taskId} = req.params;
     const task = await TaskModel.findOne({_id: taskId});
 
-    if (
-      task &&
-      req.session &&
-      mongoose.Types.ObjectId(req.session.userId).equals(task.createdBy)
-    ) {
-      const {parentTask} = task;
+    if (!task || !req.session) return DELETE_FAIL(res);
+    if (!task.createdBy.equals(req.session.userId)) return DELETE_FAIL(res);
 
-      await task.remove();
-      if (parentTask) await checkAndCompleteAncestors(parentTask);
-      return res.status(204).send();
-    }
-    return res.status(401).json(failure);
+    const {parentTask} = task;
+
+    await task.remove();
+
+    if (parentTask) await checkAndCompleteAncestors(parentTask);
+    return res.status(204).send();
   },
 };
