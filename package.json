@@ -37,8 +37,12 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "setupFiles": ["jest-date-mock"],
-    "coveragePathIgnorePatterns": ["/node/modules"]
+    "setupFiles": [
+      "jest-date-mock"
+    ],
+    "coveragePathIgnorePatterns": [
+      "/node/modules"
+    ]
   },
   "prettier": {
     "printWidth": 120
