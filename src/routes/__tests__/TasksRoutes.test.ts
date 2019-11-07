@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 import request from "supertest-session";
 import App from "../../App";
-import {ITask} from "../../types/types";
-import {Response} from "express";
+import { ITask } from "../../types/types";
+import { Response } from "express";
 import dbHandler from "../../testSetup/testDbHandler";
-import TaskModel, {ITaskModel} from "../../models/TaskModel";
-import UserModel, {IUserModel} from "../../models/UserModel";
+import TaskModel, { ITaskModel } from "../../models/TaskModel";
+import UserModel, { IUserModel } from "../../models/UserModel";
 
-import {advanceTo, advanceBy} from "jest-date-mock";
+import { advanceTo, advanceBy } from "jest-date-mock";
 
-import {IResponse} from "../../types/types";
+import { IResponse } from "../../types/types";
 
 interface IMyResponse extends Response {
   statusCode: number;
@@ -31,7 +31,7 @@ describe("Task Routes: Create task", () => {
     advanceTo(new Date(2019, 10, 10, 0, 0, 0));
 
     testSession = request(App);
-    const userData = {email: "asdf", password: "qwer"};
+    const userData = { email: "asdf", password: "qwer" };
     const user = await request(App)
       .post("/users/")
       .send(userData);
@@ -43,7 +43,7 @@ describe("Task Routes: Create task", () => {
   it("Can't create anything when user is not logged in", async () => {
     const taskData = {
       title: "Test task",
-      description: "Whatever",
+      description: "Whatever"
     };
 
     const taskResponse = await request(App)
@@ -57,7 +57,7 @@ describe("Task Routes: Create task", () => {
   it("Create a simple task with no parent", async () => {
     const taskData = {
       title: "Test task",
-      description: "Whatever",
+      description: "Whatever"
     };
 
     const taskResponse = await testSession.post("/tasks").send(taskData);
@@ -65,9 +65,7 @@ describe("Task Routes: Create task", () => {
     expect(taskResponse.body.status).toEqual("ok");
     expect(taskResponse.body.result).toMatchObject(taskData);
     expect(taskResponse.body.result.createdBy).toEqual(userId);
-    expect(taskResponse.body.result.createdOn).toEqual(
-      new Date().toISOString(),
-    );
+    expect(taskResponse.body.result.createdOn).toEqual(new Date().toISOString());
     expect(taskResponse.body.result.completed).toEqual(false);
     expect(taskResponse.body.result.children).toEqual([]);
 
@@ -95,7 +93,7 @@ describe("Task Routes: Create task", () => {
       createdBy: mongoose.Types.ObjectId(),
       _id: mongoose.Types.ObjectId(),
       createdOn: new Date(2011, 4, 6, 0, 0, 0),
-      completed: true,
+      completed: true
     };
 
     const taskResponse = await testSession.post("/tasks").send(taskData);
@@ -117,32 +115,26 @@ describe("Task Routes: Create task", () => {
   it("Creates a task with a parent", async () => {
     const parentTaskData = {
       title: "Test task",
-      description: "Whatever",
+      description: "Whatever"
     };
 
-    const parentTaskResponse = await testSession
-      .post("/tasks")
-      .send(parentTaskData);
+    const parentTaskResponse = await testSession.post("/tasks").send(parentTaskData);
     const parentTaskId = parentTaskResponse.body.result._id;
 
     const childTaskData = {
       title: "Child task",
       description: "hehehehe",
-      parentTask: parentTaskId,
+      parentTask: parentTaskId
     };
 
-    const childTaskResponse = await testSession
-      .post("/tasks")
-      .send(childTaskData);
+    const childTaskResponse = await testSession.post("/tasks").send(childTaskData);
     const tasksOnDb = await TaskModel.find({}).exec();
     expect(tasksOnDb).toHaveLength(2);
 
     const childTaskDb = (await TaskModel.findOne({
-      title: "Child task",
+      title: "Child task"
     }).exec()) as ITaskModel;
-    expect(childTaskDb.parentTask).toEqual(
-      mongoose.Types.ObjectId(parentTaskId),
-    );
+    expect(childTaskDb.parentTask).toEqual(mongoose.Types.ObjectId(parentTaskId));
   });
 
   it("Adding a new child marks all its ancestors as uncompleted", async () => {
@@ -151,7 +143,7 @@ describe("Task Routes: Create task", () => {
       description: "Description",
       completed: true,
       createdBy: userId,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     await grandParentTask.save();
 
@@ -161,7 +153,7 @@ describe("Task Routes: Create task", () => {
       completed: true,
       createdBy: userId,
       createdOn: new Date(),
-      parentTask: grandParentTask._id,
+      parentTask: grandParentTask._id
     });
 
     await parentTask.save();
@@ -169,7 +161,7 @@ describe("Task Routes: Create task", () => {
     const childTaskData = {
       title: "Child task",
       description: "child task desfc",
-      parentTask: parentTask._id,
+      parentTask: parentTask._id
     };
 
     await testSession.post("/tasks").send(childTaskData);
@@ -178,19 +170,19 @@ describe("Task Routes: Create task", () => {
     expect(dbTasks).toHaveLength(3);
 
     const grandParentTaskDb = (await TaskModel.findOne({
-      _id: grandParentTask._id,
+      _id: grandParentTask._id
     })) as ITaskModel;
     expect(grandParentTaskDb.completed).toBe(false);
 
     const parentTaskDb = (await TaskModel.findOne({
-      _id: parentTask._id,
+      _id: parentTask._id
     })) as ITaskModel;
     expect(parentTaskDb.completed).toBe(false);
   });
 });
 
 describe("Task Routes: Read task", () => {
-  const userData = {email: "asdf", password: "qwer"};
+  const userData = { email: "asdf", password: "qwer" };
   let loggedSession: any;
   let session: any;
   let user: IUserModel;
@@ -216,7 +208,7 @@ describe("Task Routes: Read task", () => {
       description: "bla bla bla",
       createdBy: user._id,
       createdOn: new Date(),
-      completed: false,
+      completed: false
     });
     await parentTask.save();
     parentTaskId = parentTask._id;
@@ -227,7 +219,7 @@ describe("Task Routes: Read task", () => {
       description: "Description 2343",
       createdBy: user._id,
       createdOn: new Date(),
-      completed: false,
+      completed: false
     });
     await childTask1.save();
     childTask1Id = childTask1._id;
@@ -238,7 +230,7 @@ describe("Task Routes: Read task", () => {
       description: "Description adsnfkenafe",
       createdBy: user._id,
       createdOn: new Date(),
-      completed: false,
+      completed: false
     });
     await childTask2.save();
     childTask2Id = childTask2._id;
@@ -252,9 +244,7 @@ describe("Task Routes: Read task", () => {
   });
 
   it("Returns not found when the taskId doesnt exists", async () => {
-    const response = await loggedSession.get(
-      `/tasks/${mongoose.Types.ObjectId()}`,
-    );
+    const response = await loggedSession.get(`/tasks/${mongoose.Types.ObjectId()}`);
     expect(response.statusCode).toEqual(404);
     expect(response.body.status).toEqual("error");
     expect(response.body.result).toEqual("Not found");
@@ -271,25 +261,17 @@ describe("Task Routes: Read task", () => {
 
     expect(response.body.result.children).toHaveLength(2);
     expect(response.body.result.children[0].title).toEqual(childTask1.title);
-    expect(response.body.result.children[0].description).toEqual(
-      childTask1.description,
-    );
-    expect(response.body.result.children[0]._id).toEqual(
-      childTask1._id.toString(),
-    );
+    expect(response.body.result.children[0].description).toEqual(childTask1.description);
+    expect(response.body.result.children[0]._id).toEqual(childTask1._id.toString());
 
     expect(response.body.result.children[1].title).toEqual(childTask2.title);
-    expect(response.body.result.children[1].description).toEqual(
-      childTask2.description,
-    );
-    expect(response.body.result.children[1]._id).toEqual(
-      childTask2._id.toString(),
-    );
+    expect(response.body.result.children[1].description).toEqual(childTask2.description);
+    expect(response.body.result.children[1]._id).toEqual(childTask2._id.toString());
   });
 });
 
 describe("Task Routes: Delete task", () => {
-  const userData = {email: "asdf", password: "qwer"};
+  const userData = { email: "asdf", password: "qwer" };
   let user: IUserModel;
   let loggedSession: any;
   let session: any;
@@ -311,7 +293,7 @@ describe("Task Routes: Delete task", () => {
       description: "bla bla bla",
       createdBy: user._id,
       createdOn: new Date(),
-      completed: false,
+      completed: false
     });
     await parentTask.save();
 
@@ -323,7 +305,7 @@ describe("Task Routes: Delete task", () => {
   });
 
   it("Only creator can delete task", async () => {
-    const userData2 = {email: "asdfqwer", password: "qwerasdf"};
+    const userData2 = { email: "asdfqwer", password: "qwerasdf" };
     const user2 = new UserModel(userData2);
     await user2.save();
 
@@ -335,7 +317,7 @@ describe("Task Routes: Delete task", () => {
       description: "bla bla bla",
       createdBy: user2._id,
       createdOn: new Date(),
-      completed: false,
+      completed: false
     });
     await parentTask.save();
 
@@ -358,7 +340,7 @@ describe("Task Routes: Delete task", () => {
       description: "grand desct",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     grandParent.save();
 
@@ -368,7 +350,7 @@ describe("Task Routes: Delete task", () => {
       description: "par",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     parent1.save();
 
@@ -378,7 +360,7 @@ describe("Task Routes: Delete task", () => {
       description: "par",
       completed: true,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     parent2.save();
 
@@ -388,7 +370,7 @@ describe("Task Routes: Delete task", () => {
       description: "par",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     child1.save();
 
@@ -398,7 +380,7 @@ describe("Task Routes: Delete task", () => {
       description: "par",
       completed: true,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     child2.save();
 
@@ -409,19 +391,19 @@ describe("Task Routes: Delete task", () => {
       expect(item.completed).toBe(true);
     });
 
-    expect(await TaskModel.find({_id: child1._id}).exec()).toHaveLength(0);
-    const updatedParent1 = await TaskModel.findOne({_id: parent1._id});
+    expect(await TaskModel.find({ _id: child1._id }).exec()).toHaveLength(0);
+    const updatedParent1 = await TaskModel.findOne({ _id: parent1._id });
     if (!updatedParent1) throw new Error("This is not going to happen");
     expect(updatedParent1.completed).toBe(true);
 
-    const updatedGrand = await TaskModel.findOne({_id: grandParent._id});
+    const updatedGrand = await TaskModel.findOne({ _id: grandParent._id });
     if (!updatedGrand) throw new Error("This is not going to happen");
     expect(updatedGrand.completed).toBe(true);
   });
 });
 
 describe("Task Routes: Edit task", () => {
-  const userData = {email: "asdf", password: "qwer"};
+  const userData = { email: "asdf", password: "qwer" };
   let user: IUserModel;
   let loggedSession: any;
   let session: any;
@@ -435,13 +417,11 @@ describe("Task Routes: Edit task", () => {
   });
 
   it("Response is 401 when taskId doesn't exists", async () => {
-    const response = await loggedSession
-      .put(`/tasks/${mongoose.Types.ObjectId()}`)
-      .send({completed: true});
+    const response = await loggedSession.put(`/tasks/${mongoose.Types.ObjectId()}`).send({ completed: true });
     expect(response.statusCode).toBe(401);
     expect(response.body).toEqual({
       status: "error",
-      result: "Task doesn't exists or not enough permissions",
+      result: "Task doesn't exists or not enough permissions"
     });
   });
 
@@ -451,39 +431,35 @@ describe("Task Routes: Edit task", () => {
       description: "asdf",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     await task.save();
 
-    const response = await session
-      .put(`/tasks/${task._id}`)
-      .send({completed: true});
+    const response = await session.put(`/tasks/${task._id}`).send({ completed: true });
     expect(response.statusCode).toBe(401);
     expect(response.body).toEqual({
       status: "error",
-      result: "Task doesn't exists or not enough permissions",
+      result: "Task doesn't exists or not enough permissions"
     });
   });
 
   it("Response is 401 when user is not task creator", async () => {
-    const user2 = new UserModel({email: "wwwww", password: "qqqqqq"});
+    const user2 = new UserModel({ email: "wwwww", password: "qqqqqq" });
     await user2.save();
     const task = new TaskModel({
       title: "hello",
       description: "asdf",
       completed: false,
       createdBy: user2._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     await task.save();
 
-    const response = await loggedSession
-      .put(`/tasks/${task._id}`)
-      .send({completed: true});
+    const response = await loggedSession.put(`/tasks/${task._id}`).send({ completed: true });
     expect(response.statusCode).toBe(401);
     expect(response.body).toEqual({
       status: "error",
-      result: "Task doesn't exists or not enough permissions",
+      result: "Task doesn't exists or not enough permissions"
     });
   });
 
@@ -493,12 +469,10 @@ describe("Task Routes: Edit task", () => {
       description: "asdf",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     await task.save();
-    const response = await loggedSession
-      .put(`/tasks/${task._id}`)
-      .send({completed: true});
+    const response = await loggedSession.put(`/tasks/${task._id}`).send({ completed: true });
     expect(response.statusCode).toEqual(200);
     expect(response.body.status).toEqual("ok");
     expect(response.body.result.title).toEqual(task.title);
@@ -513,17 +487,174 @@ describe("Task Routes: Edit task", () => {
       description: "asdf",
       completed: false,
       createdBy: user._id,
-      createdOn: new Date(),
+      createdOn: new Date()
     });
     await task.save();
     const response = await loggedSession
       .put(`/tasks/${task._id}`)
-      .send({completed: true, title: "World", description: "jejejeje"});
+      .send({ completed: true, title: "World", description: "jejejeje" });
     expect(response.statusCode).toEqual(200);
     expect(response.body.status).toEqual("ok");
     expect(response.body.result.title).toEqual("World");
     expect(response.body.result.description).toEqual("jejejeje");
     expect(response.body.result.createdBy).toEqual(task.createdBy.toString());
     expect(response.body.result.completed).toEqual(true);
+  });
+
+  it("Marking task as uncompleted, uncomplete all the ancestors", async () => {
+    const grandParentTask = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await grandParentTask.save();
+
+    const parentTask = new TaskModel({
+      parentTask: grandParentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await parentTask.save();
+
+    const childTask = new TaskModel({
+      parentTask: parentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await childTask.save();
+
+    await loggedSession.put(`/tasks/${childTask._id}`).send({ completed: false });
+    const dbTasks = await TaskModel.find({}).exec();
+    dbTasks.forEach(t => expect(t.completed).toEqual(false));
+  });
+
+  it("If completed field is not touched, it doesnt touch ancestors", async () => {
+    const grandParentTask = new TaskModel({
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await grandParentTask.save();
+
+    const parentTask = new TaskModel({
+      parentTask: grandParentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await parentTask.save();
+
+    const childTask = new TaskModel({
+      parentTask: parentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await childTask.save();
+
+    await loggedSession.put(`/tasks/${childTask._id}`).send({ title: "AAAA" });
+    const dbTasks = await TaskModel.find({}).exec();
+    dbTasks.forEach(t => expect(t.completed).toEqual(true));
+  });
+
+  it("Marking task as completed will update the neccessary ancestors", async () => {
+    const grandGrandParentTask = new TaskModel({
+      title: "ggpt",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await grandGrandParentTask.save();
+
+    const grandParentTask = new TaskModel({
+      parentTask: grandGrandParentTask._id,
+      title: "gpt",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await grandParentTask.save();
+
+    const grandParentTask2 = new TaskModel({
+      parentTask: grandGrandParentTask._id,
+      title: "gpt2",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await grandParentTask2.save();
+
+    const parentTask = new TaskModel({
+      parentTask: grandParentTask._id,
+      title: "pt",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await parentTask.save();
+
+    const parentTask2 = new TaskModel({
+      parentTask: grandParentTask._id,
+      title: "pt2",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await parentTask2.save();
+
+    const childTask = new TaskModel({
+      parentTask: parentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: false,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await childTask.save();
+
+    const childTask2 = new TaskModel({
+      parentTask: parentTask._id,
+      title: "hello",
+      description: "asdf",
+      completed: true,
+      createdBy: user._id,
+      createdOn: new Date()
+    });
+    await childTask2.save();
+
+    const ct1b = (await TaskModel.findOne({ _id: childTask._id }).exec()) as ITaskModel;
+    const pt1b = (await TaskModel.findOne({ _id: parentTask._id }).exec()) as ITaskModel;
+    const gt1b = (await TaskModel.findOne({ _id: grandParentTask._id }).exec()) as ITaskModel;
+
+    expect(ct1b.completed).toBe(false);
+    expect(pt1b.completed).toBe(false);
+    expect(gt1b.completed).toBe(false);
+
+    expect(((await TaskModel.findOne({ _id: childTask._id }).exec()) as ITaskModel).completed).toBe(false);
+    expect(((await TaskModel.findOne({ _id: parentTask._id }).exec()) as ITaskModel).completed).toBe(false);
+    expect(((await TaskModel.findOne({ _id: grandParentTask._id }).exec()) as ITaskModel).completed).toBe(false);
+    await loggedSession.put(`/tasks/${childTask._id}`).send({ completed: true });
+    expect(((await TaskModel.findOne({ _id: childTask._id }).exec()) as ITaskModel).completed).toBe(true);
+    expect(((await TaskModel.findOne({ _id: parentTask._id }).exec()) as ITaskModel).completed).toBe(true);
+    expect(((await TaskModel.findOne({ _id: grandParentTask._id }).exec()) as ITaskModel).completed).toBe(true);
   });
 });

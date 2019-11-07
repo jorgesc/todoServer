@@ -46,7 +46,7 @@ export default {
     const task = new TaskModel(taskData);
     const result = await task.save();
 
-    markAncestorsUncompleted(parentTask);
+    await markAncestorsUncompleted(parentTask);
 
     return res.status(201).json({ status: "ok", result });
   },
@@ -87,6 +87,9 @@ export default {
     const output = await TaskModel.findOneAndUpdate({ _id: taskId }, req.body, {
       new: true
     }).exec();
+
+    if (req.body.completed === false && task.parentTask) await markAncestorsUncompleted(task.parentTask);
+    if (req.body.completed === true && task.parentTask) await checkAndCompleteAncestors(task.parentTask);
     return res.status(200).json({ status: "ok", result: output });
   }
 };
