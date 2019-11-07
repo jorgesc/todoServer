@@ -2,11 +2,15 @@ import { Request, Response } from "express";
 import TaskModel, { ITaskModel } from "../models/TaskModel";
 import { TASK_VIEW, NOT_LOGGED_IN, NOT_FOUND, PERMISSIONS_FAIL } from "../views/TaskViews";
 
+// It will use all the middlewares on the middleware list
+// one by one, until one of them returns a Response
+// object, and it will stop there
+
 export interface IExtra {
   task?: ITaskModel;
 }
 
-export type IMiddlewareFunc = (req: Request, res: Response, extra: IExtra) => any;
+export type IMiddlewareFunc = (req: Request, res: Response, extra: IExtra) => Promise<Response | void>;
 
 export const isLoggedIn: IMiddlewareFunc = async (req, res, extra) => {
   if (!req.session || !req.session.userId) return NOT_LOGGED_IN(res);
@@ -27,12 +31,12 @@ export const hasPermission: IMiddlewareFunc = async (req, res, extra) => {
 
 export default (fun: IMiddlewareFunc, middlewares: IMiddlewareFunc[]) => {
   return async (req: Request, res: Response) => {
-    const extraStuff = {};
+    const extra = {};
 
     for (const m of middlewares) {
-      const output = await m(req, res, extraStuff);
+      const output = await m(req, res, extra);
       if (output) return output;
     }
-    return fun(req, res, extraStuff);
+    return fun(req, res, extra);
   };
 };
