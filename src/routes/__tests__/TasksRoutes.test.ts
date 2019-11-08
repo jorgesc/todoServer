@@ -1,17 +1,18 @@
 import mongoose from "mongoose";
 import request from "supertest-session";
 import App from "../../App";
-import { ITask } from "../../types/types";
+import { ITask } from "../../models/TaskModel";
 import { Response } from "express";
 import dbHandler from "../../testSetup/testDbHandler";
 import TaskModel, { ITaskModel } from "../../models/TaskModel";
 import UserModel, { IUserModel } from "../../models/UserModel";
 
-import { IResponse } from "../../types/types";
-
 interface IMyResponse extends Response {
   statusCode: number;
-  body: IResponse;
+  body: {
+    status: "ok" | "error";
+    result: null | string | IUserModel | boolean;
+  };
 }
 
 interface IMyTaskModel extends ITaskModel {
