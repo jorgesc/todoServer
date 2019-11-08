@@ -4,8 +4,6 @@ import App from "../../App";
 import dbHandler from "../../testSetup/testDbHandler";
 import UserModel, { IUserModel } from "../../models/UserModel";
 
-import { IResponse } from "../../types/types";
-
 interface IMyResponse extends Response {
   statusCode: number;
   body: {

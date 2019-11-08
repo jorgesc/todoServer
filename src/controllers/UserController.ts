@@ -1,52 +1,39 @@
-import {Request, Response} from "express";
+import { Request, Response } from "express";
 import UserModel from "../models/UserModel";
 
-const DOCUMENT_EXISTS_ERROR = {
-  status: "error",
-  result: "Document already exists",
-};
-
-const INVALID_LOGIN_ERROR = {
-  status: "error",
-  result: "Invalid login",
-};
-
-const SUCCESS = {
-  status: "ok",
-  result: "",
-};
+import { DOCUMENT_EXISTS_ERROR, SUCCESS, CREATED, LOGGED_IN, NOT_LOGGED_IN, LOGIN_FAILED } from "../views/UserViews";
 
 export default {
   createNewUser: async (req: Request, res: Response): Promise<Response> => {
     const userData = req.body;
 
-    const {email} = userData;
-    const existing = await UserModel.findOne({email}).exec();
-    if (existing) return res.status(409).json(DOCUMENT_EXISTS_ERROR);
+    const { email } = userData;
+    const existing = await UserModel.findOne({ email }).exec();
+    if (existing) return DOCUMENT_EXISTS_ERROR(res);
 
     const newUser = new UserModel(userData);
     const output = await newUser.save();
-    return res.status(201).json({...SUCCESS, result: output});
+    return CREATED(res, output);
   },
 
   amILoggedIn: (req: Request, res: Response): Response => {
     const loggedIn = !!(req.session && req.session.userId);
-    return res.status(200).json({...SUCCESS, result: loggedIn});
+    return loggedIn ? LOGGED_IN(res) : NOT_LOGGED_IN(res);
   },
 
   logIn: async (req: Request, res: Response): Promise<Response> => {
-    const {email, password} = req.body;
-    const user = await UserModel.findOne({email}).exec();
+    const { email, password } = req.body;
+    const user = await UserModel.findOne({ email }).exec();
     if (!(req.session && user && (await user.checkPassword(password)))) {
-      return res.status(403).json(INVALID_LOGIN_ERROR);
+      return LOGIN_FAILED(res);
     }
 
     req.session.userId = user._id;
-    return res.status(200).json(SUCCESS);
+    return SUCCESS(res);
   },
 
   logOut: (req: Request, res: Response): Response => {
     if (req.session) delete req.session.userId;
-    return res.status(200).json(SUCCESS);
-  },
+    return SUCCESS(res);
+  }
 };
