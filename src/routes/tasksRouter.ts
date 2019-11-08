@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import TaskController from "../controllers/TaskController";
 
-import { isLoggedIn, taskExists, hasPermission } from "../controllers/middlewares";
+import { isLoggedIn, taskExists, hasPermission } from "../middlewares/taskMiddlewares";
 
 const router = Router();
 router.get("/:taskId([a-f0-9]{24}$)", [isLoggedIn, taskExists], TaskController.showTask);
