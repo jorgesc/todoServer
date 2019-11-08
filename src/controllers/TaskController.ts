@@ -5,9 +5,11 @@ import TaskModel, { ITaskModel } from "../models/TaskModel";
 import { TASK_VIEW, NOT_LOGGED_IN, NOT_FOUND, PERMISSIONS_FAIL, DELETED_VIEW } from "../views/TaskViews";
 import { markAncestorsUncompleted, checkAndCompleteAncestors } from "../utils/taskUtils";
 
-import withMiddleware, { IExtra, isLoggedIn, taskExists, hasPermission } from "./middlewares";
+type IControllerFunc = (req: Request, res: Response) => Promise<Response>;
 
-type IControllerFunc = (req: Request, res: Response, extra: IExtra) => Promise<Response>;
+interface IReqLocals {
+  task: ITaskModel;
+}
 
 const createNewTask: IControllerFunc = async (req, res) => {
   if (!req.session) throw new Error("You need to call this with isLoggedIn Middleware");
@@ -26,8 +28,8 @@ const createNewTask: IControllerFunc = async (req, res) => {
   return TASK_VIEW(res, task);
 };
 
-const showTask: IControllerFunc = async (req, res, extra) => {
-  const { task } = extra;
+const showTask: IControllerFunc = async (req, res) => {
+  const { task } = req.locals;
   if (!task) throw new Error("You need to call this with taskExists Middleware");
   const childrenTasks = (await TaskModel.find({ parentTask: task._id })).map(doc => {
     const { children, ...rest } = doc.toObject();
@@ -37,8 +39,8 @@ const showTask: IControllerFunc = async (req, res, extra) => {
   return TASK_VIEW(res, result);
 };
 
-const deleteTask: IControllerFunc = async (req, res, extra) => {
-  const { task } = extra;
+const deleteTask: IControllerFunc = async (req, res) => {
+  const { task } = req.locals;
   if (!task) throw new Error("You need to call this with taskExists Middleware");
   const { parentTask } = task;
   await task.remove();
@@ -46,8 +48,8 @@ const deleteTask: IControllerFunc = async (req, res, extra) => {
   return DELETED_VIEW(res);
 };
 
-const editTask: IControllerFunc = async (req, res, extra) => {
-  const { task } = extra;
+const editTask: IControllerFunc = async (req, res) => {
+  const { task } = req.locals;
   if (!task) throw new Error("You need to call this with taskExists Middleware");
 
   const output = (await TaskModel.findOneAndUpdate({ _id: task._id }, req.body, {
@@ -59,9 +61,4 @@ const editTask: IControllerFunc = async (req, res, extra) => {
   return TASK_VIEW(res, output);
 };
 
-export default {
-  createNewTask: withMiddleware(createNewTask, [isLoggedIn]),
-  showTask: withMiddleware(showTask, [isLoggedIn, taskExists]),
-  deleteTask: withMiddleware(deleteTask, [isLoggedIn, taskExists, hasPermission]),
-  editTask: withMiddleware(editTask, [isLoggedIn, taskExists, hasPermission])
-};
+export default { createNewTask, showTask, deleteTask, editTask };
