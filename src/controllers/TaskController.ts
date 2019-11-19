@@ -28,14 +28,17 @@ const createNewTask: IControllerFunc = async (req, res) => {
   return TASK_VIEW(res, task);
 };
 
+const populateChildren = async (task: ITaskModel): Promise<ITaskModel> => {
+  const { children, ...rest } = task.toObject();
+  const foundChildren = await TaskModel.find({ parentTask: task._id });
+  const expandedChildren = await Promise.all(foundChildren.map(async c => await populateChildren(c)));
+  return { ...rest, children: expandedChildren };
+};
+
 const showTask: IControllerFunc = async (req, res) => {
   const { task } = req.locals;
   if (!task) throw new Error("You need to call this with taskExists Middleware");
-  const childrenTasks = (await TaskModel.find({ parentTask: task._id })).map(doc => {
-    const { children, ...rest } = doc.toObject();
-    return rest;
-  });
-  const result = { ...task.toObject(), children: childrenTasks };
+  const result = await populateChildren(task);
   return TASK_VIEW(res, result);
 };
 

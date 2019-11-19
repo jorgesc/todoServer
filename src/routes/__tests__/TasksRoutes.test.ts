@@ -191,10 +191,12 @@ describe("Task Routes: Read task", () => {
   let parentTaskId: mongoose.Types.ObjectId;
   let childTask1Id: mongoose.Types.ObjectId;
   let childTask2Id: mongoose.Types.ObjectId;
+  let grandChildTaskId: mongoose.Types.ObjectId;
 
   let parentTask: any;
   let childTask1: any;
   let childTask2: any;
+  let grandChildTask: any;
 
   beforeEach(async () => {
     user = new UserModel(userData);
@@ -235,6 +237,17 @@ describe("Task Routes: Read task", () => {
     });
     await childTask2.save();
     childTask2Id = childTask2._id;
+
+    grandChildTask = new TaskModel({
+      parentTask: childTask1._id,
+      title: "GrandChild",
+      description: "Yep lol",
+      createdBy: user._id,
+      createdOn: new Date(),
+      completed: false
+    });
+    await grandChildTask.save();
+    grandChildTaskId = grandChildTask._id;
   });
 
   it("Returns error when user is not logged in", async () => {
@@ -268,6 +281,11 @@ describe("Task Routes: Read task", () => {
     expect(response.body.result.children[1].title).toEqual(childTask2.title);
     expect(response.body.result.children[1].description).toEqual(childTask2.description);
     expect(response.body.result.children[1]._id).toEqual(childTask2._id.toString());
+
+    expect(response.body.result.children[0].children).toHaveLength(1);
+    expect(response.body.result.children[0].children[0].title).toEqual(grandChildTask.title);
+    expect(response.body.result.children[0].children[0].description).toEqual(grandChildTask.description);
+    expect(response.body.result.children[0].children[0]._id).toEqual(grandChildTask._id.toString());
   });
 });
 
