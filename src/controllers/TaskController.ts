@@ -5,11 +5,20 @@ import TaskModel, { ITaskModel } from "../models/TaskModel";
 import { TASK_VIEW, NOT_LOGGED_IN, NOT_FOUND, PERMISSIONS_FAIL, DELETED_VIEW } from "../views/TaskViews";
 import { markAncestorsUncompleted, checkAndCompleteAncestors } from "../utils/taskUtils";
 
-type IControllerFunc = (req: Request, res: Response) => Promise<Response>;
+type IControllerFunc = (req: Request, res: Response, task: ITaskModel) => Promise<Response>;
 
 interface IReqLocals {
   task: ITaskModel;
 }
+
+const deconstructTaskVar = (f: any) => {
+  const inner = (req: Request, res: Response) => {
+    const { task } = req.locals;
+    if (!task) throw new Error("You need to call this with taskExists Middleware");
+    return f(req, res, task);
+  };
+  return inner;
+};
 
 const createNewTask: IControllerFunc = async (req, res) => {
   if (!req.session) throw new Error("You need to call this with isLoggedIn Middleware");
@@ -35,26 +44,19 @@ const populateChildren = async (task: ITaskModel): Promise<ITaskModel> => {
   return { ...rest, children: expandedChildren };
 };
 
-const showTask: IControllerFunc = async (req, res) => {
-  const { task } = req.locals;
-  if (!task) throw new Error("You need to call this with taskExists Middleware");
+const showTask: IControllerFunc = async (req, res, task) => {
   const result = await populateChildren(task);
   return TASK_VIEW(res, result);
 };
 
-const deleteTask: IControllerFunc = async (req, res) => {
-  const { task } = req.locals;
-  if (!task) throw new Error("You need to call this with taskExists Middleware");
+const deleteTask: IControllerFunc = async (req, res, task) => {
   const { parentTask } = task;
   await task.remove();
   if (parentTask) await checkAndCompleteAncestors(parentTask);
   return DELETED_VIEW(res);
 };
 
-const editTask: IControllerFunc = async (req, res) => {
-  const { task } = req.locals;
-  if (!task) throw new Error("You need to call this with taskExists Middleware");
-
+const editTask: IControllerFunc = async (req, res, task) => {
   const output = (await TaskModel.findOneAndUpdate({ _id: task._id }, req.body, {
     new: true
   }).exec()) as ITaskModel;
@@ -64,4 +66,9 @@ const editTask: IControllerFunc = async (req, res) => {
   return TASK_VIEW(res, output);
 };
 
-export default { createNewTask, showTask, deleteTask, editTask };
+export default {
+  createNewTask,
+  showTask: deconstructTaskVar(showTask),
+  deleteTask: deconstructTaskVar(deleteTask),
+  editTask: deconstructTaskVar(editTask)
+};
