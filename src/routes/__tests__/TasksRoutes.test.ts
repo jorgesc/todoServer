@@ -343,7 +343,7 @@ describe("Task Routes: Delete task", () => {
       createdBy: user._id,
       createdOn: new Date()
     });
-    grandParent.save();
+    await grandParent.save();
 
     const parent1 = new TaskModel({
       parentTask: grandParent._id,
@@ -353,7 +353,7 @@ describe("Task Routes: Delete task", () => {
       createdBy: user._id,
       createdOn: new Date()
     });
-    parent1.save();
+    await parent1.save();
 
     const parent2 = new TaskModel({
       parentTask: grandParent._id,
@@ -363,7 +363,7 @@ describe("Task Routes: Delete task", () => {
       createdBy: user._id,
       createdOn: new Date()
     });
-    parent2.save();
+    await parent2.save();
 
     const child1 = new TaskModel({
       parentTask: parent1._id,
@@ -373,7 +373,7 @@ describe("Task Routes: Delete task", () => {
       createdBy: user._id,
       createdOn: new Date()
     });
-    child1.save();
+    await child1.save();
 
     const child2 = new TaskModel({
       parentTask: parent1._id,
@@ -383,7 +383,7 @@ describe("Task Routes: Delete task", () => {
       createdBy: user._id,
       createdOn: new Date()
     });
-    child2.save();
+    await child2.save();
 
     const response = await loggedSession.delete(`/tasks/${child1._id}`);
 
